@@ -40,7 +40,7 @@
         <button class="btn-primary" id="submitBtn" type="button" disabled>Submit timesheet</button>
       </div>
       <div id="message"></div>
-      <section id="recent" class="recent" aria-live="polite"></section>
+      <button type="button" class="recent-link" id="recentOpen">Recent submissions</button>
     </div>
 
     <div id="targetView" hidden>
@@ -53,6 +53,17 @@
     <button type="button" class="tab" data-view="target">Target</button>
   </nav>
 
+  <div id="recentPop" class="pop">
+    <button type="button" class="pop-backdrop" id="recentClose" aria-label="Close"></button>
+    <div class="pop-panel" role="dialog" aria-modal="true" aria-labelledby="recentTitle">
+      <div class="pop-head">
+        <h2 id="recentTitle">Recent submissions</h2>
+        <button type="button" class="pop-x" id="recentX" aria-label="Close">×</button>
+      </div>
+      <div id="recent"></div>
+    </div>
+  </div>
+
   <div id="overlay" class="overlay">
     <div class="overlay-card">
       <div id="spinner" class="spinner"></div>
@@ -60,6 +71,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=8"></script>
 </body>
 </html>

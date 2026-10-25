@@ -386,16 +386,87 @@ textarea { min-height: 5.2rem; resize: vertical; }
 
 .subs { margin-top: 0.7rem; }
 
-.recent { margin-top: 1.25rem; }
-
-.recent h2 {
-  margin: 0 0 0.55rem;
-  color: var(--muted);
+.recent-link {
+  display: block;
+  width: 100%;
+  margin: 1.1rem 0 0;
+  padding: 0.4rem;
+  border: 0;
+  background: none;
+  color: var(--cream);
   font-family: Oswald, system-ui, sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-decoration: underline;
   text-transform: uppercase;
+  text-underline-offset: 0.28rem;
+}
+
+.pop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pop.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pop-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.pop-panel {
+  position: relative;
+  width: min(32rem, 100%);
+  max-height: 85dvh;
+  overflow: auto;
+  padding: 1.2rem 1rem max(1.4rem, env(safe-area-inset-bottom));
+  border: 1px solid var(--line);
+  border-radius: 1.4rem 1.4rem 0 0;
+  background: var(--felt);
+}
+
+.pop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pop-head h2 {
+  margin: 0;
+  font-family: Oswald, system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pop-x {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  margin-top: -0.2rem;
+  border: 0;
+  background: none;
+  color: var(--cream);
+  font-size: 1.8rem;
+  line-height: 1;
 }
 
 .recent-row {

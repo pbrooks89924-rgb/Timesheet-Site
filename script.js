@@ -332,12 +332,21 @@ function loadRecent() {
     box.innerHTML = "";
     return;
   }
-  box.innerHTML = '<h2>Recent</h2><p class="recent-empty">Loading…</p>';
+  box.innerHTML = '<p class="recent-empty">Loading…</p>';
   fetchRecent(worker)
     .then((rows) => renderRecent(rows))
     .catch(() => {
-      box.innerHTML = '<h2>Recent</h2><p class="recent-empty">Could not load recent entries.</p>';
+      box.innerHTML = '<p class="recent-empty">Could not load recent entries.</p>';
     });
+}
+
+function openRecent() {
+  document.getElementById("recentPop").classList.add("show");
+  loadRecent();
+}
+
+function closeRecent() {
+  document.getElementById("recentPop").classList.remove("show");
 }
 
 function fetchRecent(worker) {
@@ -359,9 +368,9 @@ function fetchRecent(worker) {
 
 function renderRecent(rows) {
   const box = document.getElementById("recent");
-  box.innerHTML = "<h2>Recent</h2>";
+  box.innerHTML = "";
   if (!rows.length) {
-    box.insertAdjacentHTML("beforeend", '<p class="recent-empty">Nothing from the last 7 days.</p>');
+    box.innerHTML = '<p class="recent-empty">Nothing from the last 7 days.</p>';
     return;
   }
   rows.forEach((row) => {
@@ -428,6 +437,9 @@ function showMessage(text, type) {
 }
 
 document.getElementById("addBtn").addEventListener("click", addEntry);
+document.getElementById("recentOpen").addEventListener("click", openRecent);
+document.getElementById("recentClose").addEventListener("click", closeRecent);
+document.getElementById("recentX").addEventListener("click", closeRecent);
 document.getElementById("submitBtn").addEventListener("click", submitAll);
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => showView(btn.dataset.view));
