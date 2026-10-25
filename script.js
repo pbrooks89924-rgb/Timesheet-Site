@@ -59,10 +59,12 @@ async function init() {
 
   wSel.addEventListener("change", () => {
     localStorage.setItem("lastWorker", wSel.value);
+    loadRecent();
   });
 
   addEntry();
   document.getElementById("submitBtn").disabled = false;
+  loadRecent();
 
   if (demoMode) {
     showMessage(
@@ -120,12 +122,11 @@ function renderDates() {
   const strip = document.createElement("div");
   strip.className = "date-strip";
 
-  for (let offset = -2; offset <= 2; offset++) {
+  for (let offset = -1; offset <= 1; offset++) {
     const day = addDays(windowCenter, offset);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "day";
-    if (Math.abs(offset) === 2) btn.classList.add("faded");
     if (sameDay(day, selectedDate)) btn.classList.add("selected");
     btn.innerHTML =
       '<span class="wk">' + WEEKDAYS[day.getDay()] + "</span>" +
@@ -272,6 +273,7 @@ async function submitAll() {
     addEntry();
     updateTotal();
     document.getElementById("message").innerHTML = "";
+    loadRecent();
   } catch (err) {
     hideOverlay();
     showMessage("Failed to save: " + err.message, "error");
@@ -314,6 +316,110 @@ function postTimesheet(payload) {
     if (!res.ok) throw new Error("status " + res.status);
     return data;
   });
+}
+
+function friendlyDate(iso) {
+  const parts = String(iso).split("-");
+  const day = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  if (isNaN(day.getTime())) return iso;
+  return WEEKDAYS[day.getDay()] + " " + ordinal(day.getDate());
+}
+
+function loadRecent() {
+  const box = document.getElementById("recent");
+  const worker = document.getElementById("worker").value;
+  if (!worker) {
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML = '<h2>Recent</h2><p class="recent-empty">Loading…</p>';
+  fetchRecent(worker)
+    .then((rows) => renderRecent(rows))
+    .catch(() => {
+      box.innerHTML = '<h2>Recent</h2><p class="recent-empty">Could not load recent entries.</p>';
+    });
+}
+
+function fetchRecent(worker) {
+  if (demoMode) {
+    return Promise.resolve([
+      { row: 1, date: isoDate(startOfDay(new Date())), main: "Roofing", sub: "Slating", hours: 6, notes: "" },
+    ]);
+  }
+  return fetch(SCRIPT_URL + "?action=recent&worker=" + encodeURIComponent(worker))
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error("status " + res.status);
+      if (!data || !Array.isArray(data.recent)) {
+        throw new Error("Redeploy the Apps Script to turn on Remove.");
+      }
+      return data.recent;
+    });
+}
+
+function renderRecent(rows) {
+  const box = document.getElementById("recent");
+  box.innerHTML = "<h2>Recent</h2>";
+  if (!rows.length) {
+    box.insertAdjacentHTML("beforeend", '<p class="recent-empty">Nothing from the last 7 days.</p>');
+    return;
+  }
+  rows.forEach((row) => {
+    const line = document.createElement("div");
+    line.className = "recent-row";
+    const note = row.notes
+      ? '<div class="recent-note">' + esc(row.notes) + "</div>"
+      : "";
+    line.innerHTML =
+      '<div class="recent-copy">' +
+        '<div class="recent-title">' + esc(friendlyDate(row.date) + " · " + row.sub) + "</div>" +
+        '<div class="recent-meta">' + esc(formatHrs(row.hours) + " hrs · " + row.main) + "</div>" +
+        note +
+      "</div>" +
+      '<button type="button" class="remove-entry">Remove</button>';
+    line.querySelector(".remove-entry").addEventListener("click", () => askRemove(line, row));
+    box.appendChild(line);
+  });
+}
+
+function askRemove(line, row) {
+  const actions = document.createElement("div");
+  const no = document.createElement("button");
+  no.type = "button";
+  no.className = "confirm-no";
+  no.textContent = "No";
+  const yes = document.createElement("button");
+  yes.type = "button";
+  yes.className = "confirm-yes";
+  yes.textContent = "Yes";
+  no.addEventListener("click", () => loadRecent());
+  yes.addEventListener("click", () => removeRecent(row, yes));
+  actions.append(no, yes);
+  line.querySelector(".remove-entry").replaceWith(actions);
+}
+
+async function removeRecent(row, button) {
+  button.disabled = true;
+  const worker = document.getElementById("worker").value;
+  if (demoMode) {
+    loadRecent();
+    return;
+  }
+  try {
+    const result = await postTimesheet({
+      action: "void",
+      worker,
+      row: row.row,
+      main: row.main,
+      sub: row.sub,
+      hours: row.hours,
+    });
+    if (!result.success) throw new Error(result.error || "The sheet did not confirm.");
+    loadRecent();
+  } catch (err) {
+    showMessage("Could not remove that line: " + err.message, "error");
+    loadRecent();
+  }
 }
 
 function showMessage(text, type) {
