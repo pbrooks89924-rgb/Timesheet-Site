@@ -2,7 +2,7 @@
  * Work Timsheets
  * Tabs: Categories | Workers | TimeEntries
  *
- * Categories:   A MainCategory | B SubCategory
+ * Categories:   A MainCategory | B SubCategory | C Target hours | D Site hours
  * Workers:      A worker name
  * TimeEntries:  A Timestamp | B Date | C Worker | D MainCategory
  *               E SubCategory | F Hours | G Notes
@@ -78,14 +78,21 @@ function getFormData() {
 
   const mains = [];
   const mapping = {};
+  const categories = [];
   cats.forEach(function (r) {
     const main = r[0];
     const sub = r[1];
     if (!main || !sub) return;
+    categories.push({
+      main: String(main),
+      sub: String(sub),
+      target: Number(r[2]) || 0,
+      actual: Number(r[3]) || 0,
+    });
     if (mains.indexOf(main) === -1) mains.push(main);
     if (!mapping[main]) mapping[main] = [];
     if (mapping[main].indexOf(sub) === -1) mapping[main].push(sub);
   });
 
-  return { workers: workers, mains: mains, mapping: mapping };
+  return { workers: workers, mains: mains, mapping: mapping, categories: categories };
 }

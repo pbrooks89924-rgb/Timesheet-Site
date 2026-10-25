@@ -11,6 +11,15 @@ const SAMPLE = {
     Joinery: ["First fix", "Second fix", "Door hanging"],
     External: ["Scaffold", "Guttering", "Render"],
   },
+  categories: [
+    { main: "Roofing", sub: "Slating", target: 40, actual: 28 },
+    { main: "Roofing", sub: "Fascia Boards", target: 12, actual: 14 },
+    { main: "Roofing", sub: "Ridges", target: 8, actual: 3 },
+    { main: "Groundworks", sub: "Excavation", target: 24, actual: 24 },
+    { main: "Groundworks", sub: "Drainage", target: 16, actual: 6 },
+    { main: "Joinery", sub: "First fix", target: 30, actual: 4 },
+    { main: "External", sub: "Scaffold", target: 10, actual: 0 },
+  ],
 };
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -314,7 +323,128 @@ function showMessage(text, type) {
 
 document.getElementById("addBtn").addEventListener("click", addEntry);
 document.getElementById("submitBtn").addEventListener("click", submitAll);
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => showView(btn.dataset.view));
+});
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js");
 }
 init();
+
+function esc(value) {
+  return String(value)
+    .replace(/&/g, "\u0026amp;")
+    .replace(/</g, "\u0026lt;")
+    .replace(/"/g, "\u0026quot;");
+}
+
+function formatHrs(n) {
+  return String(Math.round((Number(n) || 0) * 100) / 100);
+}
+
+function barModel(actual, target) {
+  const used = Number(actual) || 0;
+  const allowed = Number(target) || 0;
+  if (allowed <= 0) return { pct: used > 0 ? 100 : 0, over: used > 0 };
+  return { pct: Math.min(used / allowed, 1) * 100, over: used > allowed };
+}
+
+function groupCategories(rows) {
+  const groups = [];
+  const index = {};
+  (rows || []).forEach((row) => {
+    if (!index[row.main]) {
+      index[row.main] = { main: row.main, subs: [] };
+      groups.push(index[row.main]);
+    }
+    index[row.main].subs.push(row);
+  });
+  return groups;
+}
+
+function meter(actual, target) {
+  const model = barModel(actual, target);
+  return (
+    '<div class="bar' + (model.over ? " over" : "") + '">' +
+      '<span style="width:' + model.pct + '%"></span>' +
+    "</div>"
+  );
+}
+
+function renderTargets() {
+  const list = document.getElementById("targetList");
+  const rows = formData && formData.categories;
+  if (!rows) {
+    list.innerHTML = '<p class="msg info">Redeploy the Apps Script, then open Target again. The sheet needs to send the target hours.</p>';
+    return;
+  }
+
+  const groups = groupCategories(rows);
+  let site = 0;
+  let allowed = 0;
+  list.innerHTML = "";
+
+  groups.forEach((group) => {
+    const actual = group.subs.reduce((sum, row) => sum + (Number(row.actual) || 0), 0);
+    const target = group.subs.reduce((sum, row) => sum + (Number(row.target) || 0), 0);
+    site += actual;
+    allowed += target;
+
+    const card = document.createElement("section");
+    card.className = "target-card";
+    card.innerHTML =
+      '<div class="target-head">' +
+        '<button type="button" class="expander" aria-expanded="false" aria-label="Show ' + esc(group.main) + '">+</button>' +
+        '<div class="target-copy">' +
+          '<div class="target-line"><h2>' + esc(group.main) + "</h2><span class=\"hrs\">" + formatHrs(actual) + "/" + formatHrs(target) + " hrs</span></div>" +
+          meter(actual, target) +
+        "</div>" +
+      "</div>" +
+      '<div class="subs" hidden></div>';
+
+    const subs = card.querySelector(".subs");
+    group.subs.forEach((row) => {
+      const line = document.createElement("div");
+      line.className = "sub-row";
+      line.innerHTML =
+        '<div class="target-line"><span class="sub-name">' + esc(row.sub) + '</span><span class="hrs">' +
+        formatHrs(row.actual) + "/" + formatHrs(row.target) + " hrs</span></div>" +
+        meter(row.actual, row.target);
+      subs.appendChild(line);
+    });
+
+    card.querySelector(".expander").addEventListener("click", () => {
+      const open = subs.hidden;
+      subs.hidden = !open;
+      const button = card.querySelector(".expander");
+      button.textContent = open ? "–" : "+";
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    list.appendChild(card);
+  });
+
+  const whole = document.createElement("section");
+  whole.className = "target-card";
+  whole.innerHTML =
+    '<div class="target-line"><span class="whole-name">Whole job</span><span class="hrs">' +
+    formatHrs(site) + "/" + formatHrs(allowed) + " hrs</span></div>" +
+    meter(site, allowed);
+  list.appendChild(whole);
+}
+
+async function showView(name) {
+  document.getElementById("sheetView").hidden = name !== "sheet";
+  document.getElementById("targetView").hidden = name !== "target";
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === name);
+  });
+  if (name !== "target") return;
+  try {
+    formData = await loadFormData();
+  } catch (err) {
+    document.getElementById("targetList").innerHTML =
+      '<p class="msg error">Could not load targets from the sheet.</p>';
+    return;
+  }
+  renderTargets();
+}

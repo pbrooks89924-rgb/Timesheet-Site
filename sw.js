@@ -1,4 +1,4 @@
-const CACHE = "timesheets-v1";
+const CACHE = "timesheets-v3";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
