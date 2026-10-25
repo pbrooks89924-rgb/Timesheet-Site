@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Berriew - Bungalow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="mast">
+      <h1>Berriew - Bungalow</h1>
+    </header>
+
+    <div class="card">
+      <label for="worker">Who's working</label>
+      <select id="worker"></select>
+
+      <label>Date</label>
+      <div class="date-row" id="dateRow"></div>
+    </div>
+
+    <div id="entries"></div>
+    <button class="btn-add" type="button" id="addBtn">+ Add another job</button>
+
+    <div class="actions">
+      <div class="total">Total hours <span id="total">0.00</span></div>
+      <button class="btn-primary" id="submitBtn" type="button" disabled>Submit timesheet</button>
+    </div>
+    <div id="message"></div>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <div id="spinner" class="spinner"></div>
+      <p id="overlayText">Submitting</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

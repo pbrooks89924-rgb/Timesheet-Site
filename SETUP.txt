@@ -1,0 +1,19 @@
+Time entry files
+================
+
+index.html   page
+styles.css   look
+script.js    behaviour — set SCRIPT_URL
+Code.gs      paste into the spreadsheet (Extensions → Apps Script)
+
+Sheet layout this code expects
+------------------------------
+Categories:   MainCategory | SubCategory
+Workers:      name in column A (Dave, Pete, …)
+TimeEntries:  Timestamp | Date | Worker | MainCategory | SubCategory | Hours | Notes
+
+Deploy the script as a web app (Execute as: Me, access: Anyone),
+then paste that URL into SCRIPT_URL in script.js.
+
+Each phone remembers the last worker (Dave stays Dave, Pete stays Pete).
+A day with several jobs writes one row per job.
