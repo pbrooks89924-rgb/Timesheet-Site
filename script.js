@@ -314,4 +314,7 @@ function showMessage(text, type) {
 
 document.getElementById("addBtn").addEventListener("click", addEntry);
 document.getElementById("submitBtn").addEventListener("click", submitAll);
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
 init();
