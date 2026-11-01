@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles-v6.css">
+  <link rel="stylesheet" href="styles-v7.css">
 </head>
 <body>
   <div class="container">
@@ -46,10 +46,44 @@
     <div id="targetView" hidden>
       <div id="targetList"></div>
     </div>
+
+    <div id="costView" hidden>
+      <div class="card">
+        <label for="costKind">Type</label>
+        <select id="costKind">
+          <option>Materials</option>
+          <option>Plant</option>
+          <option>Subbies</option>
+        </select>
+
+        <label for="invoiceRef">Invoice reference</label>
+        <input id="invoiceRef" type="text" autocomplete="off">
+
+        <label>Date</label>
+        <div class="date-row" id="invoiceDateRow"></div>
+
+        <div class="money-row">
+          <div>
+            <label for="invoiceTotal">Invoice total</label>
+            <input id="invoiceTotal" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0">
+          </div>
+          <div>
+            <label>Unallocated</label>
+            <p id="unallocated" class="unallocated">£0.00</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="invoiceLines"></div>
+      <button class="btn-add" type="button" id="splitBtn">Split invoice</button>
+      <button class="btn-primary" id="invoiceBtn" type="button" disabled>Submit materials</button>
+      <div id="invoiceMessage"></div>
+    </div>
   </div>
 
   <nav class="tabs">
     <button type="button" class="tab active" data-view="sheet">Timesheets</button>
+    <button type="button" class="tab" data-view="cost">Materials</button>
     <button type="button" class="tab" data-view="target">Target</button>
   </nav>
 
@@ -71,6 +105,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=8"></script>
+  <script src="script.js?v=9"></script>
 </body>
 </html>

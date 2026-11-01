@@ -28,6 +28,8 @@ let formData = null;
 let demoMode = false;
 let selectedDate = startOfDay(new Date());
 let windowCenter = startOfDay(new Date());
+let invoiceDate = startOfDay(new Date());
+let invoiceCenter = startOfDay(new Date());
 
 async function init() {
   renderDates();
@@ -64,6 +66,8 @@ async function init() {
 
   addEntry();
   document.getElementById("submitBtn").disabled = false;
+  renderInvoiceDates();
+  addInvoiceLine(false);
   loadRecent();
 
   if (demoMode) {
@@ -431,11 +435,216 @@ async function removeRecent(row, button) {
   }
 }
 
+function renderInvoiceDates() {
+  const row = document.getElementById("invoiceDateRow");
+  row.innerHTML = "";
+  const left = document.createElement("button");
+  left.type = "button";
+  left.className = "date-arrow";
+  left.setAttribute("aria-label", "Earlier dates");
+  left.textContent = "‹";
+  left.addEventListener("click", () => {
+    invoiceCenter = addDays(invoiceCenter, -1);
+    renderInvoiceDates();
+  });
+  const strip = document.createElement("div");
+  strip.className = "date-strip";
+  for (let offset = -1; offset <= 1; offset++) {
+    const day = addDays(invoiceCenter, offset);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "day";
+    if (sameDay(day, invoiceDate)) btn.classList.add("selected");
+    btn.innerHTML =
+      '<span class="wk">' + WEEKDAYS[day.getDay()] + "</span>" +
+      '<span class="num">' + ordinal(day.getDate()) + "</span>";
+    btn.addEventListener("click", () => {
+      invoiceDate = day;
+      renderInvoiceDates();
+    });
+    strip.appendChild(btn);
+  }
+  const right = document.createElement("button");
+  right.type = "button";
+  right.className = "date-arrow";
+  right.setAttribute("aria-label", "Later dates");
+  right.textContent = "›";
+  right.addEventListener("click", () => {
+    invoiceCenter = addDays(invoiceCenter, 1);
+    renderInvoiceDates();
+  });
+  row.append(left, strip, right);
+}
+
+function unallocatedAmount() {
+  const raw = document.getElementById("invoiceTotal").value;
+  if (raw === "") return NaN;
+  let used = 0;
+  document.querySelectorAll("#invoiceLines .value").forEach((inp) => {
+    used += Number(inp.value) || 0;
+  });
+  return Math.round((Number(raw) - used) * 100) / 100;
+}
+
+function money(n) {
+  const sign = n < 0 ? "-" : "";
+  return sign + "£" + Math.abs(n).toFixed(2);
+}
+
+function invoiceReady() {
+  const ref = document.getElementById("invoiceRef").value.trim();
+  const left = unallocatedAmount();
+  if (!ref || Number.isNaN(left) || Math.abs(left) >= 0.005) return false;
+  const lines = document.querySelectorAll("#invoiceLines .cost-line");
+  if (!lines.length) return false;
+  for (const line of lines) {
+    const main = line.querySelector(".main").value;
+    const sub = line.querySelector(".sub").value;
+    const value = Number(line.querySelector(".value").value);
+    if (!main || !sub || !(value > 0)) return false;
+  }
+  return true;
+}
+
+function updateUnallocated() {
+  const el = document.getElementById("unallocated");
+  const left = unallocatedAmount();
+  el.classList.remove("ok", "over");
+  if (Number.isNaN(left)) el.textContent = "£0.00";
+  else {
+    el.textContent = money(left);
+    if (Math.abs(left) < 0.005) el.classList.add("ok");
+    else if (left < 0) el.classList.add("over");
+  }
+  const btn = document.getElementById("invoiceBtn");
+  btn.disabled = !invoiceReady();
+  btn.textContent = "Submit " + document.getElementById("costKind").value.toLowerCase();
+}
+
+function refreshLineRemoves() {
+  const buttons = document.querySelectorAll("#invoiceLines .remove");
+  buttons.forEach((btn) => {
+    btn.hidden = buttons.length < 2;
+  });
+}
+
+function addInvoiceLine(fromSplit) {
+  if (!formData) return;
+  const lines = document.getElementById("invoiceLines");
+  const previous = lines.querySelector(".cost-line:last-child");
+  const div = document.createElement("div");
+  div.className = "entry cost-line";
+  div.innerHTML = `
+    <button class="remove" type="button" aria-label="Remove line">×</button>
+    <label>Category</label>
+    <select class="main"><option value="">Select…</option></select>
+    <label>Subcategory</label>
+    <select class="sub"><option value="">Select main first</option></select>
+    <label>Description</label>
+    <input class="description" type="text" autocomplete="off">
+    <label>Notes</label>
+    <textarea class="notes" placeholder="Anything I should know"></textarea>
+    <label>Value</label>
+    <input class="value" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0">
+  `;
+  const mainSel = div.querySelector(".main");
+  formData.mains.forEach((m) => {
+    const o = document.createElement("option");
+    o.value = o.textContent = m;
+    mainSel.appendChild(o);
+  });
+  if (fromSplit && previous) {
+    mainSel.value = previous.querySelector(".main").value;
+    fillSubs(mainSel);
+    div.querySelector(".sub").value = previous.querySelector(".sub").value;
+    const left = unallocatedAmount();
+    if (left > 0.004) div.querySelector(".value").value = left.toFixed(2);
+  }
+  div.querySelector(".remove").addEventListener("click", () => {
+    if (lines.querySelectorAll(".cost-line").length === 1) return;
+    div.remove();
+    refreshLineRemoves();
+    updateUnallocated();
+  });
+  mainSel.addEventListener("change", () => fillSubs(mainSel));
+  div.querySelector(".value").addEventListener("input", updateUnallocated);
+  lines.appendChild(div);
+  refreshLineRemoves();
+  updateUnallocated();
+}
+
+function showInvoiceMessage(text, type) {
+  document.getElementById("invoiceMessage").innerHTML =
+    '<div class="msg ' + type + '">' + text + "</div>";
+}
+
+function resetInvoice() {
+  document.getElementById("costKind").value = "Materials";
+  document.getElementById("invoiceRef").value = "";
+  document.getElementById("invoiceTotal").value = "";
+  document.getElementById("invoiceLines").innerHTML = "";
+  document.getElementById("invoiceMessage").innerHTML = "";
+  invoiceDate = startOfDay(new Date());
+  invoiceCenter = startOfDay(new Date());
+  renderInvoiceDates();
+  addInvoiceLine(false);
+}
+
+async function submitInvoice() {
+  if (!invoiceReady()) {
+    showInvoiceMessage("The lines have to add up to the invoice total.", "error");
+    return;
+  }
+  const lines = [];
+  document.querySelectorAll("#invoiceLines .cost-line").forEach((div) => {
+    lines.push({
+      main: div.querySelector(".main").value,
+      sub: div.querySelector(".sub").value,
+      description: div.querySelector(".description").value.trim(),
+      notes: div.querySelector(".notes").value.trim(),
+      value: Number(div.querySelector(".value").value),
+    });
+  });
+  if (demoMode) {
+    showInvoiceMessage("Demo only — nothing was written. Connect the Apps Script URL to save.", "info");
+    return;
+  }
+  const btn = document.getElementById("invoiceBtn");
+  btn.disabled = true;
+  showOverlay("Submitting", true);
+  try {
+    const result = await postTimesheet({
+      action: "invoice",
+      kind: document.getElementById("costKind").value,
+      reference: document.getElementById("invoiceRef").value.trim(),
+      date: isoDate(invoiceDate),
+      lines,
+    });
+    if (!result.success) throw new Error(result.error || "The sheet did not confirm the save.");
+    showOverlay("Submitted!", false);
+    await wait(2000);
+    hideOverlay();
+    resetInvoice();
+  } catch (err) {
+    hideOverlay();
+    showInvoiceMessage("Failed to save: " + err.message, "error");
+  } finally {
+    updateUnallocated();
+  }
+}
+
 function showMessage(text, type) {
   document.getElementById("message").innerHTML =
     '<div class="msg ' + type + '">' + text + "</div>";
 }
 
+document.getElementById("splitBtn").addEventListener("click", () => addInvoiceLine(true));
+document.getElementById("invoiceBtn").addEventListener("click", submitInvoice);
+document.getElementById("invoiceTotal").addEventListener("input", updateUnallocated);
+document.getElementById("invoiceRef").addEventListener("input", updateUnallocated);
+document.getElementById("costKind").addEventListener("change", () => {
+  document.getElementById("invoiceBtn").textContent = "Submit " + document.getElementById("costKind").value.toLowerCase();
+});
 document.getElementById("addBtn").addEventListener("click", addEntry);
 document.getElementById("recentOpen").addEventListener("click", openRecent);
 document.getElementById("recentClose").addEventListener("click", closeRecent);
@@ -553,9 +762,16 @@ function renderTargets() {
 async function showView(name) {
   document.getElementById("sheetView").hidden = name !== "sheet";
   document.getElementById("targetView").hidden = name !== "target";
+  document.getElementById("costView").hidden = name !== "cost";
   document.querySelectorAll(".tab").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.view === name);
   });
+  if (name === "cost") {
+    renderInvoiceDates();
+    if (formData && !document.querySelector("#invoiceLines .cost-line")) addInvoiceLine(false);
+    updateUnallocated();
+    return;
+  }
   if (name !== "target") return;
   try {
     formData = await loadFormData();
