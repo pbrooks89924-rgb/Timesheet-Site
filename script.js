@@ -228,7 +228,7 @@ function updateTotal() {
 
 async function submitAll() {
   const entries = [];
-  document.querySelectorAll(".entry").forEach((div) => {
+  document.querySelectorAll("#entries .entry").forEach((div) => {
     const main = div.querySelector(".main").value;
     const sub = div.querySelector(".sub").value;
     const hours = Number(div.querySelector(".hours").value);
@@ -533,7 +533,7 @@ function addInvoiceLine(fromSplit) {
   const lines = document.getElementById("invoiceLines");
   const previous = lines.querySelector(".cost-line:last-child");
   const div = document.createElement("div");
-  div.className = "entry cost-line";
+  div.className = "cost-line";
   div.innerHTML = `
     <button class="remove" type="button" aria-label="Remove line">×</button>
     <label>Category</label>
